@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 
 # Import database and models
 from db import init_db
+from models.manufacturers.manufacturers_models import Manufacturer
+from models.retailers.retailers_models import Retailer
 from routes.manufacturers.manufacturers_routes import router as manufacturers_router
 from routes.retailers.retailers_routes import router as retailers_router
 
@@ -27,15 +29,15 @@ async def lifespan(app: FastAPI):
     pass
 
 # Create FastAPI application
-app = FastAPI(& Retailers API",
-    description="Backend API for BHUKK manufacturers and retailers management",
+app = FastAPI(
+    title="BHUKK Pvt. Ltd.",
+    description="Backend API for BHUKK is running",
     version="1.0.0",
     lifespan=lifespan
 )
 
 # Register routers
-app.include_router(manufacturers_router)
-app.include_router(retail
+app.include_router(retailers_router)
 app.include_router(manufacturers_router)
 
 # Serve static files (assets)

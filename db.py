@@ -4,10 +4,6 @@ from sqlalchemy.pool import StaticPool
 import os
 from dotenv import load_dotenv
 
-# Import models to register them with Base
-from models.manufacturers.manufacturers_models import Manufacturer
-from models.retailers.retailers_models import Retailer
-
 # Load environment variables from .env file
 load_dotenv()
 
