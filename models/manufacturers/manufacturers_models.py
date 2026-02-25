@@ -30,6 +30,7 @@ class Manufacturer(Base):
     excise_license_url = Column(Text, nullable=False)
     fssai_license_no = Column(String(50), nullable=True)
     fssai_license_url = Column(Text, nullable=False)
+    trade_license_url = Column(Text, nullable=False)
     
     # Authority signatory
     auth_signatory_name = Column(String(255), nullable=True)

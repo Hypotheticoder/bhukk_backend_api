@@ -26,6 +26,7 @@ async def create_manufacturer(
     pan_url: UploadFile = File(...),
     gst_cert_url: UploadFile = File(...),
     fssai_license_url: UploadFile = File(...),
+    trade_license_url: UploadFile = File(...),
     excise_license_url: UploadFile = File(...),
     cancelled_cheque_url: UploadFile = File(...),
     auth_letter_url: UploadFile = File(...),
@@ -67,6 +68,7 @@ async def create_manufacturer(
         print(f"[FILE] pan_url: {pan_url.filename if pan_url else None}")
         print(f"[FILE] gst_cert_url: {gst_cert_url.filename if gst_cert_url else None}")
         print(f"[FILE] fssai_license_url: {fssai_license_url.filename if fssai_license_url else None}")
+        print(f"[FILE] trade_license_url: {trade_license_url.filename if trade_license_url else None}")
         print(f"[FILE] excise_license_url: {excise_license_url.filename if excise_license_url else None}")
         print(f"[FILE] cancelled_cheque_url: {cancelled_cheque_url.filename if cancelled_cheque_url else None}")
         print(f"[FILE] auth_letter_url: {auth_letter_url.filename if auth_letter_url else None}")
@@ -130,6 +132,12 @@ async def create_manufacturer(
         print(f"[PROCESS] Uploading fssai_license_url: {fssai_license_url.filename}")
         new_manufacturer.fssai_license_url = save_file(fssai_license_url, upload_path, "fssai_license")
         print(f"[SUCCESS] fssai_license_url saved at: {new_manufacturer.fssai_license_url}")
+        
+        if not validate_file(trade_license_url):
+            raise HTTPException(status_code=400, detail="Invalid file format for trade license")
+        print(f"[PROCESS] Uploading trade_license_url: {trade_license_url.filename}")
+        new_manufacturer.trade_license_url = save_file(trade_license_url, upload_path, "trade_license")
+        print(f"[SUCCESS] trade_license_url saved at: {new_manufacturer.trade_license_url}")
         
         if not validate_file(excise_license_url):
             raise HTTPException(status_code=400, detail="Invalid file format for excise license")
@@ -298,6 +306,7 @@ async def update_manufacturer(
     pan_url: Optional[UploadFile] = File(None),
     gst_cert_url: Optional[UploadFile] = File(None),
     fssai_license_url: Optional[UploadFile] = File(None),
+    trade_license_url: Optional[UploadFile] = File(None),
     excise_license_url: Optional[UploadFile] = File(None),
     cancelled_cheque_url: Optional[UploadFile] = File(None),
     auth_letter_url: Optional[UploadFile] = File(None),
@@ -421,6 +430,12 @@ async def update_manufacturer(
             old_url = manufacturer.fssai_license_url
             manufacturer.fssai_license_url = save_file(fssai_license_url, upload_path, "fssai_license")
             print(f"[SUCCESS] fssai_license_url replaced - Old: {old_url} -> New: {manufacturer.fssai_license_url}")
+        
+        if trade_license_url and validate_file(trade_license_url):
+            print(f"[PROCESS] Updating trade_license_url: {trade_license_url.filename}")
+            old_url = manufacturer.trade_license_url
+            manufacturer.trade_license_url = save_file(trade_license_url, upload_path, "trade_license")
+            print(f"[SUCCESS] trade_license_url replaced - Old: {old_url} -> New: {manufacturer.trade_license_url}")
         
         if excise_license_url and validate_file(excise_license_url):
             print(f"[PROCESS] Updating excise_license_url: {excise_license_url.filename}")
