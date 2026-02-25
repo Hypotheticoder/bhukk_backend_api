@@ -11,10 +11,14 @@ from models.manufacturers.manufacturers_models import Manufacturer
 from models.retailers.retailers_models import Retailer
 from models.distributors.distributors_models import Distributor
 from models.partners.partners_models import Partner
+from models.terms_conditions.terms_conditions_models import TermsConditions
+from models.portfolio.portfolio_models import Portfolio
 from routes.manufacturers.manufacturers_routes import router as manufacturers_router
 from routes.retailers.retailers_routes import router as retailers_router
 from routes.distributors.distributors_routes import router as distributors_router
 from routes.partners.partners_routes import router as partners_router
+from routes.terms_conditions.terms_conditions_routes import router as terms_conditions_router
+from routes.portfolio.portfolio_routes import router as portfolio_router
 
 # Load environment variables
 load_dotenv()
@@ -45,6 +49,8 @@ app.include_router(retailers_router)
 app.include_router(manufacturers_router)
 app.include_router(distributors_router)
 app.include_router(partners_router)
+app.include_router(terms_conditions_router)
+app.include_router(portfolio_router)
 
 # Serve static files (assets)
 if not os.path.exists("./assets"):
