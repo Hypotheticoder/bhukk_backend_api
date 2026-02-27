@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
@@ -44,6 +45,15 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Add CORS middleware to allow cross-origin requests from frontend clients
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # adjust in production to specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Register routers
 app.include_router(retailers_router)
 app.include_router(manufacturers_router)
@@ -57,6 +67,10 @@ if not os.path.exists("./assets"):
     os.makedirs("./assets", exist_ok=True)
 
 app.mount("/assets", StaticFiles(directory="./assets"), name="assets")
+# Serve uploaded files so saved file URLs are reachable at /uploads/...
+if not os.path.exists("./uploads"):
+    os.makedirs("./uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="./uploads"), name="uploads")
 
 # Favicon endpoint
 @app.get("/favicon.ico", include_in_schema=False)

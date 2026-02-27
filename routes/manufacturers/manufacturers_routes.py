@@ -92,6 +92,16 @@ async def create_manufacturer(
             auth_signatory_name=auth_signatory_name,
             alt_phn_no=alt_phn_no,
             upi_id=upi_id,
+            # Initialize required file URL fields to avoid NOT NULL constraint failures
+            incorporation_certificate_url="",
+            pan_url="",
+            gst_cert_url="",
+            fssai_license_url="",
+            trade_license_url="",
+            excise_license_url="",
+            cancelled_cheque_url="",
+            auth_letter_url="",
+            manufacturer_images_url=[],
         )
         print(f"[SUCCESS] Manufacturer instance created")
         

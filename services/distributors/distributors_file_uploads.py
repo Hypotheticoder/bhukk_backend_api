@@ -63,7 +63,9 @@ def save_file(file: UploadFile, upload_path: str, custom_filename: str = None) -
         with open(file_path, "wb") as f:
             f.write(content)
         
-        return f"{upload_path}/{filename}"
+        # Return a web-accessible path (served from /uploads)
+        public_path = file_path.replace("\\", "/").replace("./uploads", "/uploads")
+        return public_path
     except Exception as e:
         raise Exception(f"File upload failed: {str(e)}")
 

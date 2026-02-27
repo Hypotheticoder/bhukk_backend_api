@@ -130,6 +130,16 @@ async def create_distributor(
             alt_phn_no=alt_phn_no,
             vehicle_count=vehicle_count,
             remarks=remarks,
+            # Initialize non-nullable file URL columns so INSERT/flush won't fail
+            gst_certificate_url="",
+            pan_url="",
+            msme_certificate_url="",
+            firesafety_certificate_url="",
+            excise_license_url="",
+            company_incorporation_certificate_url="",
+            trade_license_url="",
+            cancelled_cheque_url="",
+            transporation_logistics_url="",
         )
         print(f"[SUCCESS] Distributor instance created")
         

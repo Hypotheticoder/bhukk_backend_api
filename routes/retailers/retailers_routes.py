@@ -150,6 +150,16 @@ async def create_retailer(
             email=email,
             authorized_signatory_name=authorized_signatory_name,
             remarks=remarks,
+            # Initialize required file URL fields to empty strings so flush/insert
+            # does not fail due to NOT NULL constraints. These will be updated
+            # with real URLs after files are saved to disk.
+            cancelled_cheque_url="",
+            excise_license_url="",
+            trade_license_url="",
+            shop_establishment_license_url="",
+            gst_certificate_url="",
+            fire_noc_url="",
+            shop_photo_url="",
         )
         print(f"[SUCCESS] Retailer instance created")
         api_messages.append("[SUCCESS] Retailer instance created")
