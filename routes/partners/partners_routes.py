@@ -1,116 +1,137 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 from models.partners.partners_models import Partner
 from services.partners.partners_file_uploads import (
     create_upload_directory, save_file, delete_partner_files, validate_file
 )
 from db import get_db
+import json
 
 router = APIRouter(prefix="/api/partners", tags=["partners"])
 
-# Create Partner endpoint
+
+# Create Delivery Partner endpoint
 @router.post("/create", response_model=dict)
 async def create_partner(
-    # Required fields
-    partner_name: str = Form(...),
-    partner_url: UploadFile = File(...),
-    # Optional fields
-    partner_tagline: Optional[str] = Form(None),
-    partner_description: Optional[str] = Form(None),
-    partner_website: Optional[str] = Form(None),
+    full_name: str = Form(...),
+    date_of_birth: Optional[str] = Form(None),
+    gender: Optional[str] = Form(None),
+    email: str = Form(...),
+    phone_no: str = Form(...),
+    alt_phone_no: Optional[str] = Form(None),
+    password: str = Form(...),
+    profile_photo_url: Optional[UploadFile] = File(None),
+    id_proof_type: Optional[str] = Form(None),
+    id_proof_url: Optional[UploadFile] = File(None),
+    address_line: Optional[str] = Form(None),
+    vehicle_type: Optional[str] = Form(None),
+    vehicle_model: Optional[str] = Form(None),
+    vehicle_number: Optional[str] = Form(None),
+    vehicle_rc_url: Optional[UploadFile] = File(None),
+    driving_license_number: Optional[str] = Form(None),
+    driving_license_url: Optional[UploadFile] = File(None),
+    servicing_zones: Optional[str] = Form(None),
+    is_active_for_delivery: Optional[bool] = Form(True),
+    chakna_enabled: Optional[bool] = Form(False),
+    food_trade_license_available: Optional[bool] = Form(False),
+    fssai_number: Optional[str] = Form(None),
+    bank_account_name: Optional[str] = Form(None),
+    bank_name: Optional[str] = Form(None),
+    account_number: Optional[str] = Form(None),
+    ifsc_code: Optional[str] = Form(None),
+    upi_id: Optional[str] = Form(None),
+    cancelled_cheque_url: Optional[UploadFile] = File(None),
+    onboarding_status: Optional[str] = Form("Pending"),
+    account_status: Optional[str] = Form("Active"),
+    remarks: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    # Create new partner record
     try:
-        # Log all received parameters
         print(f"\n{'='*60}")
-        print(f"=== CREATE PARTNER REQUEST ===")
+        print(f"=== CREATE DELIVERY PARTNER REQUEST ===")
         print(f"{'='*60}")
-        print(f"[INFO] Request started for creating new partner")
-        print(f"[PARAM] partner_name: {partner_name}")
-        print(f"[PARAM] partner_tagline: {partner_tagline}")
-        print(f"[PARAM] partner_description: {partner_description}")
-        print(f"[PARAM] partner_website: {partner_website}")
-        print(f"[FILE] partner_url: {partner_url.filename if partner_url else None}")
-        
-        # Create new partner instance
-        print(f"\n[STEP] Creating new partner instance")
+
+        # create instance with required defaults for file/url fields to avoid NOT NULL errors
         new_partner = Partner(
-            partner_name=partner_name,
-            partner_tagline=partner_tagline,
-            partner_description=partner_description,
-            partner_website=partner_website,
+            full_name=full_name,
+            date_of_birth=date_of_birth,
+            gender=gender,
+            email=email,
+            phone_no=phone_no,
+            alt_phone_no=alt_phone_no,
+            password=password,
+            profile_photo_url="",
+            id_proof_type=id_proof_type,
+            id_proof_url="",
+            address_line=address_line,
+            vehicle_type=vehicle_type,
+            vehicle_model=vehicle_model,
+            vehicle_number=vehicle_number,
+            vehicle_rc_url="",
+            driving_license_number=driving_license_number,
+            driving_license_url="",
+            servicing_zones=servicing_zones,
+            is_active_for_delivery=str(is_active_for_delivery).lower(),
+            chakna_enabled=str(chakna_enabled).lower(),
+            food_trade_license_available=str(food_trade_license_available).lower(),
+            fssai_number=fssai_number,
+            bank_account_name=bank_account_name,
+            bank_name=bank_name,
+            account_number=account_number,
+            ifsc_code=ifsc_code,
+            upi_id=upi_id,
+            cancelled_cheque_url="",
+            onboarding_status=onboarding_status,
+            account_status=account_status,
+            remarks=remarks,
         )
-        print(f"[SUCCESS] Partner instance created")
-        
-        # Add to database to get partner_id
-        print(f"[STEP] Adding partner to database")
+
         db.add(new_partner)
         db.flush()
-        print(f"[SUCCESS] Partner added to database with ID: {new_partner.partner_id}")
-        
-        # Create upload directory
-        print(f"[STEP] Creating upload directory for partner_id: {new_partner.partner_id}")
+
         upload_path = create_upload_directory(new_partner.partner_id)
-        print(f"[SUCCESS] Upload directory created at: {upload_path}")
-        
-        # Save partner image
-        print(f"\n[STEP] Starting file upload processing")
-        
-        if not validate_file(partner_url):
-            raise HTTPException(status_code=400, detail="Invalid file format for partner URL. Allowed formats: png, jpg, jpeg, webp, gif")
-        print(f"[PROCESS] Uploading partner_url: {partner_url.filename}")
-        new_partner.partner_url = save_file(partner_url, upload_path, "partner_logo")
-        print(f"[SUCCESS] partner_url saved at: {new_partner.partner_url}")
-        
-        # Commit changes
-        print(f"\n[STEP] Committing changes to database")
+
+        # Save files if provided
+        if profile_photo_url and validate_file(profile_photo_url):
+            new_partner.profile_photo_url = save_file(profile_photo_url, upload_path, "profile_photo")
+
+        if id_proof_url and validate_file(id_proof_url):
+            new_partner.id_proof_url = save_file(id_proof_url, upload_path, "id_proof")
+
+        if vehicle_rc_url and validate_file(vehicle_rc_url):
+            new_partner.vehicle_rc_url = save_file(vehicle_rc_url, upload_path, "vehicle_rc")
+
+        if driving_license_url and validate_file(driving_license_url):
+            new_partner.driving_license_url = save_file(driving_license_url, upload_path, "driving_license")
+
+        if cancelled_cheque_url and validate_file(cancelled_cheque_url):
+            new_partner.cancelled_cheque_url = save_file(cancelled_cheque_url, upload_path, "cancelled_cheque")
+
+        # Commit and refresh
         db.commit()
-        print(f"[SUCCESS] Database transaction committed")
-        
-        # Refresh to get latest data
-        print(f"[STEP] Refreshing partner record from database")
         db.refresh(new_partner)
-        print(f"[SUCCESS] Partner record refreshed")
-        
-        print(f"\n[FINAL] Partner creation completed successfully!")
-        print(f"[RESULT] Partner ID: {new_partner.partner_id}")
-        print(f"[RESULT] Partner Name: {new_partner.partner_name}")
-        print(f"{'='*60}\n")
-        
-        return {
-            "status": "success",
-            "message": "Partner created successfully",
-            "partner_id": new_partner.partner_id,
-            "partner_name": new_partner.partner_name,
-        }
-    except HTTPException:
-        raise
+
+        return {"status": "success", "partner_id": new_partner.partner_id, "delivery_partner_id": new_partner.delivery_partner_id}
     except Exception as e:
-        print(f"\n{'='*60}")
-        print(f"=== ERROR IN CREATE PARTNER ===")
-        print(f"{'='*60}")
-        print(f"[ERROR] Error Type: {type(e).__name__}")
-        print(f"[ERROR] Error Message: {str(e)}")
-        print(f"{'='*60}\n")
+        print(f"ERROR: {e}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-# Get all partners endpoint
+
+# Get all delivery partners
 @router.get("/get-all", response_model=list)
 async def get_all_partners(db: Session = Depends(get_db)):
-    # Get all partners
     try:
         partners = db.query(Partner).all()
         return partners
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Get a partner by ID endpoint
+
+# Get delivery partner by id
 @router.get("/get-by/{partner_id}", response_model=dict)
 async def get_partner_by_id(partner_id: int, db: Session = Depends(get_db)):
-    # Get partner by ID
     try:
         partner = db.query(Partner).filter(Partner.partner_id == partner_id).first()
         if not partner:
@@ -121,109 +142,77 @@ async def get_partner_by_id(partner_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Update a partner by ID endpoint
+
+# Update partner
 @router.put("/update-by/{partner_id}", response_model=dict)
 async def update_partner(
     partner_id: int,
-    # Optional fields for update
-    partner_name: Optional[str] = Form(None),
-    partner_tagline: Optional[str] = Form(None),
-    partner_description: Optional[str] = Form(None),
-    partner_website: Optional[str] = Form(None),
-    partner_url: Optional[UploadFile] = File(None),
+    full_name: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
+    phone_no: Optional[str] = Form(None),
+    alt_phone_no: Optional[str] = Form(None),
+    profile_photo_url: Optional[UploadFile] = File(None),
+    id_proof_url: Optional[UploadFile] = File(None),
+    vehicle_rc_url: Optional[UploadFile] = File(None),
+    driving_license_url: Optional[UploadFile] = File(None),
+    cancelled_cheque_url: Optional[UploadFile] = File(None),
+    onboarding_status: Optional[str] = Form(None),
+    account_status: Optional[str] = Form(None),
+    remarks: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    # Update partner record
     try:
-        print(f"\n{'='*60}")
-        print(f"=== UPDATE PARTNER REQUEST (ID: {partner_id}) ===")
-        print(f"{'='*60}")
-        print(f"[INFO] Update request started for partner_id: {partner_id}")
-        
-        # Fetch partner record from database
-        print(f"[STEP] Fetching partner record from database")
         partner = db.query(Partner).filter(Partner.partner_id == partner_id).first()
         if not partner:
             raise HTTPException(status_code=404, detail="Partner not found")
-        print(f"[SUCCESS] Partner record found")
-        
-        # Update text fields
-        print(f"[STEP] Updating text fields")
-        if partner_name:
-            print(f"[UPDATE] partner_name: {partner_name}")
-            partner.partner_name = partner_name
-        if partner_tagline:
-            print(f"[UPDATE] partner_tagline: {partner_tagline}")
-            partner.partner_tagline = partner_tagline
-        if partner_description:
-            print(f"[UPDATE] partner_description: {partner_description}")
-            partner.partner_description = partner_description
-        if partner_website:
-            print(f"[UPDATE] partner_website: {partner_website}")
-            partner.partner_website = partner_website
-        print(f"[SUCCESS] All text fields updated")
-        
-        # Create upload directory path
+
+        if full_name:
+            partner.full_name = full_name
+        if email:
+            partner.email = email
+        if phone_no:
+            partner.phone_no = phone_no
+        if alt_phone_no:
+            partner.alt_phone_no = alt_phone_no
+        if onboarding_status:
+            partner.onboarding_status = onboarding_status
+        if account_status:
+            partner.account_status = account_status
+        if remarks:
+            partner.remarks = remarks
+
         upload_path = f"./uploads/partners/{partner_id}"
-        
-        # Update file upload
-        print(f"\n[STEP] Starting file upload update processing")
-        
-        if partner_url and validate_file(partner_url):
-            print(f"[PROCESS] Updating partner_url: {partner_url.filename}")
-            old_url = partner.partner_url
-            partner.partner_url = save_file(partner_url, upload_path, "partner_logo")
-            print(f"[SUCCESS] partner_url replaced - Old: {old_url} -> New: {partner.partner_url}")
-        
-        # Commit changes
-        print(f"\n[STEP] Committing changes to database")
+        if profile_photo_url and validate_file(profile_photo_url):
+            partner.profile_photo_url = save_file(profile_photo_url, upload_path, "profile_photo")
+        if id_proof_url and validate_file(id_proof_url):
+            partner.id_proof_url = save_file(id_proof_url, upload_path, "id_proof")
+        if vehicle_rc_url and validate_file(vehicle_rc_url):
+            partner.vehicle_rc_url = save_file(vehicle_rc_url, upload_path, "vehicle_rc")
+        if driving_license_url and validate_file(driving_license_url):
+            partner.driving_license_url = save_file(driving_license_url, upload_path, "driving_license")
+        if cancelled_cheque_url and validate_file(cancelled_cheque_url):
+            partner.cancelled_cheque_url = save_file(cancelled_cheque_url, upload_path, "cancelled_cheque")
+
         db.commit()
-        print(f"[SUCCESS] Database transaction committed")
-        
-        # Refresh to get latest data
-        print(f"[STEP] Refreshing partner record from database")
         db.refresh(partner)
-        print(f"[SUCCESS] Partner record refreshed")
-        
-        print(f"\n[FINAL] Partner update completed successfully!")
-        print(f"[RESULT] Partner ID: {partner.partner_id}")
-        print(f"[RESULT] Partner Name: {partner.partner_name}")
-        print(f"{'='*60}\n")
-        
-        return {
-            "status": "success",
-            "message": "Partner updated successfully",
-            "partner_id": partner.partner_id,
-            "partner_name": partner.partner_name,
-        }
+        return {"status": "success", "partner_id": partner.partner_id}
     except HTTPException:
         raise
     except Exception as e:
-        print(f"\n{'='*60}")
-        print(f"=== ERROR IN UPDATE PARTNER (ID: {partner_id}) ===")
-        print(f"{'='*60}")
-        print(f"[ERROR] Error Type: {type(e).__name__}")
-        print(f"[ERROR] Error Message: {str(e)}")
-        print(f"{'='*60}\n")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-# Delete a partner by ID endpoint
+
+# Delete partner
 @router.delete("/delete-by/{partner_id}", response_model=dict)
 async def delete_partner(partner_id: int, db: Session = Depends(get_db)):
-    # Delete partner and associated files
     try:
         partner = db.query(Partner).filter(Partner.partner_id == partner_id).first()
         if not partner:
             raise HTTPException(status_code=404, detail="Partner not found")
-        
-        # Delete files
         delete_partner_files(partner_id)
-        
-        # Delete database record
         db.delete(partner)
         db.commit()
-        
         return {"message": "Partner deleted successfully"}
     except HTTPException:
         raise
