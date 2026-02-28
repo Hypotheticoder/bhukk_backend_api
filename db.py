@@ -1,27 +1,27 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.pool import StaticPool
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables from .env file (if present)
 load_dotenv()
 
-# Get database credentials from environment variables
-DB_USER = os.getenv('DB_USER', 'postgres')
-DB_PASSWORD = os.getenv('DB_PASSWORD', 'password')
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '5432')
-DB_NAME = os.getenv('DB_NAME', 'bhukk_db')
+# Prefer POSTGRES_* env vars when running in Docker; fall back to DB_* or defaults
+DB_USER = os.getenv('DB_USER') or os.getenv('POSTGRES_USER') or 'postgres'
+DB_PASSWORD = os.getenv('DB_PASSWORD') or os.getenv('POSTGRES_PASSWORD') or 'password'
+DB_HOST = os.getenv('DB_HOST') or os.getenv('POSTGRES_HOST') or 'localhost'
+DB_PORT = os.getenv('DB_PORT') or '5432'
+DB_NAME = os.getenv('DB_NAME') or os.getenv('POSTGRES_DB') or 'bhukk_db'
 
 # Construct database URL
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-# Create SQLAlchemy engine
+# Create SQLAlchemy engine with a short connect timeout to fail fast if DB is unreachable
 engine = create_engine(
     DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
+    connect_args={"connect_timeout": 10},
 )
 
 # Create session factory
@@ -30,6 +30,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Create base class for models
 Base = declarative_base()
 
+
 def get_db():
     # Dependency for getting database session
     db = SessionLocal()
@@ -37,6 +38,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 def init_db():
     # Create all database tables on server startup
