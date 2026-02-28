@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import Optional, List
 from models.partners.partners_models import Partner
 from services.partners.partners_file_uploads import (
@@ -51,6 +52,24 @@ async def create_partner(
         print(f"\n{'='*60}")
         print(f"=== CREATE DELIVERY PARTNER REQUEST ===")
         print(f"{'='*60}")
+
+        # Check if email already exists
+        existing_partner = db.query(Partner).filter(Partner.email == email).first()
+        if existing_partner:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A partner with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+
+        # Check if phone number already exists
+        existing_phone = db.query(Partner).filter(Partner.phone_no == phone_no).first()
+        if existing_phone:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A partner with phone number '{phone_no}' already exists.",
+                "duplicated_field": "phone_no",
+                "duplicated_value": phone_no
+            })
 
         # create instance with required defaults for file/url fields to avoid NOT NULL errors
         new_partner = Partner(
@@ -113,6 +132,29 @@ async def create_partner(
         db.refresh(new_partner)
 
         return {"status": "success", "partner_id": new_partner.partner_id, "delivery_partner_id": new_partner.delivery_partner_id}
+    except HTTPException:
+        raise
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "email" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A partner with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+        elif "phone_no" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A partner with phone number '{phone_no}' already exists.",
+                "duplicated_field": "phone_no",
+                "duplicated_value": phone_no
+            })
+        else:
+            raise HTTPException(status_code=409, detail={
+                "message": "A partner with the given details already exists.",
+                "duplicated_field": "unknown",
+                "duplicated_value": None
+            })
     except Exception as e:
         print(f"ERROR: {e}")
         db.rollback()
@@ -198,6 +240,27 @@ async def update_partner(
         return {"status": "success", "partner_id": partner.partner_id}
     except HTTPException:
         raise
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "email" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A partner with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+        elif "phone_no" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A partner with phone number '{phone_no}' already exists.",
+                "duplicated_field": "phone_no",
+                "duplicated_value": phone_no
+            })
+        else:
+            raise HTTPException(status_code=409, detail={
+                "message": "A partner with the given details already exists.",
+                "duplicated_field": "unknown",
+                "duplicated_value": None
+            })
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

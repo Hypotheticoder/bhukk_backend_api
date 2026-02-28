@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import Optional, List
 from models.retailers.retailers_models import Retailer
 from services.retailers.retailers_file_uploads import (
@@ -123,6 +124,24 @@ async def create_retailer(
         print(f"[FILE] shop_photo_url: {shop_photo_url_file.filename if shop_photo_url_file else None}")
         api_messages.append(f"[FILE] shop_photo_url: {shop_photo_url_file.filename if shop_photo_url_file else None}")
         
+        # Check if email already exists
+        existing_email = db.query(Retailer).filter(Retailer.email == email).first()
+        if existing_email:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A retailer with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+
+        # Check if phone number already exists
+        existing_phone = db.query(Retailer).filter(Retailer.phn_no == phn_no).first()
+        if existing_phone:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A retailer with phone number '{phn_no}' already exists.",
+                "duplicated_field": "phn_no",
+                "duplicated_value": phn_no
+            })
+
         # Create new retailer instance
         print(f"\n[STEP] Creating new retailer")
         api_messages.append("[STEP] Creating new retailer")
@@ -268,6 +287,29 @@ async def create_retailer(
             "shop_name": new_retailer.shop_name,
             "api_logs": api_messages
         }
+    except HTTPException:
+        raise
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "email" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A retailer with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+        elif "phn_no" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A retailer with phone number '{phn_no}' already exists.",
+                "duplicated_field": "phn_no",
+                "duplicated_value": phn_no
+            })
+        else:
+            raise HTTPException(status_code=409, detail={
+                "message": "A retailer with the given details already exists.",
+                "duplicated_field": "unknown",
+                "duplicated_value": None
+            })
     except Exception as e:
         print(f"\n{'='*60}")
         print(f"=== ERROR IN CREATE RETAILER ===")
@@ -485,6 +527,27 @@ async def update_retailer(
         }
     except HTTPException:
         raise
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "email" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A retailer with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+        elif "phn_no" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A retailer with phone number '{phn_no}' already exists.",
+                "duplicated_field": "phn_no",
+                "duplicated_value": phn_no
+            })
+        else:
+            raise HTTPException(status_code=409, detail={
+                "message": "A retailer with the given details already exists.",
+                "duplicated_field": "unknown",
+                "duplicated_value": None
+            })
     except Exception as e:
         print(f"\n{'='*60}")
         print(f"=== ERROR IN UPDATE RETAILER (ID: {retailer_id}) ===")

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import Optional, List
 from models.distributors.distributors_models import Distributor
 from services.distributors.distributors_file_uploads import (
@@ -102,6 +103,24 @@ async def create_distributor(
             except:
                 raise HTTPException(status_code=400, detail="Invalid servicing_area JSON format")
         
+        # Check if email already exists
+        existing_email = db.query(Distributor).filter(Distributor.email == email).first()
+        if existing_email:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A distributor with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+
+        # Check if phone number already exists
+        existing_phone = db.query(Distributor).filter(Distributor.phn_no == phn_no).first()
+        if existing_phone:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A distributor with phone number '{phn_no}' already exists.",
+                "duplicated_field": "phn_no",
+                "duplicated_value": phn_no
+            })
+
         # Create new distributor instance
         print(f"\n[STEP] Creating new distributor instance")
         new_distributor = Distributor(
@@ -234,6 +253,27 @@ async def create_distributor(
         }
     except HTTPException:
         raise
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "email" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A distributor with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+        elif "phn_no" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A distributor with phone number '{phn_no}' already exists.",
+                "duplicated_field": "phn_no",
+                "duplicated_value": phn_no
+            })
+        else:
+            raise HTTPException(status_code=409, detail={
+                "message": "A distributor with the given details already exists.",
+                "duplicated_field": "unknown",
+                "duplicated_value": None
+            })
     except Exception as e:
         print(f"\n{'='*60}")
         print(f"=== ERROR IN CREATE DISTRIBUTOR ===")
@@ -494,6 +534,27 @@ async def update_distributor(
         }
     except HTTPException:
         raise
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "email" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A distributor with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+        elif "phn_no" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A distributor with phone number '{phn_no}' already exists.",
+                "duplicated_field": "phn_no",
+                "duplicated_value": phn_no
+            })
+        else:
+            raise HTTPException(status_code=409, detail={
+                "message": "A distributor with the given details already exists.",
+                "duplicated_field": "unknown",
+                "duplicated_value": None
+            })
     except Exception as e:
         print(f"\n{'='*60}")
         print(f"=== ERROR IN UPDATE DISTRIBUTOR (ID: {distributor_id}) ===")

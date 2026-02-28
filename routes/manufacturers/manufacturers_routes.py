@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import Optional, List
 from models.manufacturers.manufacturers_models import Manufacturer
 from services.manufacturers.manufacturers_file_uploads import (
@@ -74,6 +75,24 @@ async def create_manufacturer(
         print(f"[FILE] auth_letter_url: {auth_letter_url.filename if auth_letter_url else None}")
         print(f"[FILE] manufacturer_images: {[img.filename for img in manufacturer_images] if manufacturer_images else None}")
         
+        # Check if email already exists
+        existing_email = db.query(Manufacturer).filter(Manufacturer.email == email).first()
+        if existing_email:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A manufacturer with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+
+        # Check if phone number already exists
+        existing_phone = db.query(Manufacturer).filter(Manufacturer.phn_no == phn_no).first()
+        if existing_phone:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A manufacturer with phone number '{phn_no}' already exists.",
+                "duplicated_field": "phn_no",
+                "duplicated_value": phn_no
+            })
+
         # Create new manufacturer instance
         print(f"\n[STEP] Creating new manufacturer instance")
         new_manufacturer = Manufacturer(
@@ -234,6 +253,29 @@ async def create_manufacturer(
                 "[FINAL] Manufacturer registration completed successfully!"
             ]
         }
+    except HTTPException:
+        raise
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "email" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A manufacturer with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+        elif "phn_no" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A manufacturer with phone number '{phn_no}' already exists.",
+                "duplicated_field": "phn_no",
+                "duplicated_value": phn_no
+            })
+        else:
+            raise HTTPException(status_code=409, detail={
+                "message": "A manufacturer with the given details already exists.",
+                "duplicated_field": "unknown",
+                "duplicated_value": None
+            })
     except Exception as e:
         print(f"\n{'='*60}")
         print(f"=== ERROR IN CREATE MANUFACTURER ===")
@@ -516,6 +558,27 @@ async def update_manufacturer(
         }
     except HTTPException:
         raise
+    except IntegrityError as e:
+        db.rollback()
+        error_msg = str(e.orig)
+        if "email" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A manufacturer with email '{email}' already exists.",
+                "duplicated_field": "email",
+                "duplicated_value": email
+            })
+        elif "phn_no" in error_msg:
+            raise HTTPException(status_code=409, detail={
+                "message": f"A manufacturer with phone number '{phn_no}' already exists.",
+                "duplicated_field": "phn_no",
+                "duplicated_value": phn_no
+            })
+        else:
+            raise HTTPException(status_code=409, detail={
+                "message": "A manufacturer with the given details already exists.",
+                "duplicated_field": "unknown",
+                "duplicated_value": None
+            })
     except Exception as e:
         print(f"\n{'='*60}")
         print(f"=== ERROR IN UPDATE MANUFACTURER (ID: {manufacturer_id}) ===")
